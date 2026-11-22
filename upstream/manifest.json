@@ -1,0 +1,40 @@
+{
+  "GGBondHere/QingLongScripts": {
+    "commit": "79238495c2489b52a6cc001ba9d6703ae6d57955",
+    "files": {
+      "quark.py": {
+        "source": "scripts/quark.py",
+        "sha256": "9493ec5042f30cb45a2d46da066192333f1487a62b26c8aa9ecdddba6122c022"
+      },
+      "upstream/quark.md": {
+        "source": "docs/quark.md",
+        "sha256": "bc57a7ae8095a4a4124b6d592db2696d387bb0f143ccbbda0352cd4877c63b8c"
+      },
+      "licenses/QingLongScripts-LICENSE": {
+        "source": "LICENSE",
+        "sha256": "a4103ce1b42ec58d719c5a97731c8f9be8571f47d089891291caa1dc1a3f6e40"
+      }
+    }
+  },
+  "L0NE-6/WorkBuddy-Daily": {
+    "commit": "fcbd66822d0d2d67be97b1d4cb1e64dc1621b52c",
+    "files": {
+      "workbuddy_daily.py": {
+        "source": "workbuddy_daily.py",
+        "sha256": "00a157d3fdf0a6706aafa554cfd7a39ba09023a7f3429d7d890ded839774d34a"
+      },
+      "workbuddy_login.py": {
+        "source": "workbuddy_login.py",
+        "sha256": "a7d2a51d04503389315a15cb71272ee7b45b40b95713e56ff005a3b141b552c4"
+      },
+      "licenses/WorkBuddy-Daily-LICENSE": {
+        "source": "LICENSE",
+        "sha256": "728a9ccb8ce21413acb1b6db37b4865effba22c386b042ff4db61d985c9cf77e"
+      },
+      "upstream/WorkBuddy-NOTICE.md": {
+        "source": "NOTICE.md",
+        "sha256": "37a731a3db7f0f865fb0b181d144769df97b66b4d2a64bb534fc335f3db9ad46"
+      }
+    }
+  }
+}

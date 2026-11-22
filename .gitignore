@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.env
+wb_*.json
+WORKBUDDY_ACCESS_TOKEN.txt
+workbuddy_*state*.json
+workbuddy_sign_retry.json
