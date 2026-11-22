@@ -9,13 +9,13 @@ from urllib.request import Request, urlopen
 ROOT = Path(__file__).resolve().parent
 SOURCES = {
     'GGBondHere/QingLongScripts': {
-        'scripts/quark.py': 'quark.py',
+        'scripts/quark.py': 'Quark/quark.py',
         'docs/quark.md': 'upstream/quark.md',
         'LICENSE': 'licenses/QingLongScripts-LICENSE',
     },
     'L0NE-6/WorkBuddy-Daily': {
-        'workbuddy_daily.py': 'workbuddy_daily.py',
-        'workbuddy_login.py': 'workbuddy_login.py',
+        'workbuddy_daily.py': 'WorkBuddy/workbuddy_daily.py',
+        'workbuddy_login.py': 'WorkBuddy/workbuddy_login.py',
         'LICENSE': 'licenses/WorkBuddy-Daily-LICENSE',
         'NOTICE.md': 'upstream/WorkBuddy-NOTICE.md',
     },
@@ -45,6 +45,9 @@ def main():
         path = ROOT / target
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(data)
+    for old, new in [('quark.py', 'Quark/quark.py'), ('workbuddy_daily.py', 'WorkBuddy/workbuddy_daily.py'), ('workbuddy_login.py', 'WorkBuddy/workbuddy_login.py')]:
+        if (ROOT / new).is_file():
+            (ROOT / old).unlink(missing_ok=True)
     print('Synced Quark and WorkBuddy domestic scripts. Upstream commits recorded.')
 
 if __name__ == '__main__':
