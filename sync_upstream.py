@@ -2,6 +2,7 @@
 import ast
 import hashlib
 import json
+import subprocess
 from pathlib import Path
 from urllib.request import Request, urlopen
 
@@ -27,7 +28,7 @@ def get(url):
 def main():
     pending, manifest = {}, {}
     for repo, files in SOURCES.items():
-        sha = json.loads(get(f'https://api.github.com/repos/{repo}/commits/main'))['sha']
+        sha = subprocess.check_output(['git', 'ls-remote', f'https://github.com/{repo}.git', 'refs/heads/main'], text=True, timeout=60).split()[0]
         manifest[repo] = {'commit': sha, 'files': {}}
         for source, target in files.items():
             data = get(f'https://raw.githubusercontent.com/{repo}/{sha}/{source}')
