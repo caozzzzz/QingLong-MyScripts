@@ -2,7 +2,7 @@
   "GGBondHere/QingLongScripts": {
     "commit": "79238495c2489b52a6cc001ba9d6703ae6d57955",
     "files": {
-      "quark.py": {
+      "Quark/quark.py": {
         "source": "scripts/quark.py",
         "sha256": "9493ec5042f30cb45a2d46da066192333f1487a62b26c8aa9ecdddba6122c022"
       },
@@ -19,11 +19,11 @@
   "L0NE-6/WorkBuddy-Daily": {
     "commit": "fcbd66822d0d2d67be97b1d4cb1e64dc1621b52c",
     "files": {
-      "workbuddy_daily.py": {
+      "WorkBuddy/workbuddy_daily.py": {
         "source": "workbuddy_daily.py",
         "sha256": "00a157d3fdf0a6706aafa554cfd7a39ba09023a7f3429d7d890ded839774d34a"
       },
-      "workbuddy_login.py": {
+      "WorkBuddy/workbuddy_login.py": {
         "source": "workbuddy_login.py",
         "sha256": "a7d2a51d04503389315a15cb71272ee7b45b40b95713e56ff005a3b141b552c4"
       },
