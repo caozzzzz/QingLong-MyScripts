@@ -1,0 +1,36 @@
+name: Sync selected upstream scripts
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/sync.yml'
+      - 'sync_upstream.py'
+  schedule:
+    - cron: '23 */6 * * *'
+permissions:
+  contents: write
+concurrency:
+  group: sync-upstream
+  cancel-in-progress: false
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Download allowlisted files and validate Python syntax
+        run: python sync_upstream.py
+      - name: Commit upstream changes
+        shell: bash
+        run: |
+          git add -- quark.py workbuddy_daily.py workbuddy_login.py licenses upstream requirements.txt .gitignore
+          if git diff --cached --quiet; then
+            echo 'No upstream changes'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'sync: update selected upstream scripts'
+          git push
