@@ -51,6 +51,29 @@ def collect_gitee(pending, manifest, checkout=None):
             subprocess.run(['git', 'clone', '--depth', '1', '--branch', 'master', '--single-branch', GITEE_REPO, temp], check=True, timeout=180)
             collect(temp)
 
+
+def adapt_bark_history(pending, manifest):
+    target = 'ChinaMobile/sendNotify.py'
+    raw = pending[target]
+    text = raw.decode('utf-8')
+    replacements = [
+        ('f"""https://api.day.app/{BARK}/{title}/{urllib.parse.quote_plus(content)}""").json()',
+         'f"""https://api.day.app/{BARK}/{title}/{urllib.parse.quote_plus(content)}""", params={"isArchive": 1, "group": "移动云盘"}, timeout=20).json()'),
+        ('f"""{BARK_PUSH}/{title}/{urllib.parse.quote_plus(content)}""").json()',
+         'f"""{BARK_PUSH}/{title}/{urllib.parse.quote_plus(content)}""", params={"isArchive": 1, "group": "移动云盘"}, timeout=20).json()'),
+    ]
+    for old, new in replacements:
+        if text.count(old) != 1:
+            raise ValueError('Upstream Bark implementation changed; review archive adaptation')
+        text = text.replace(old, new)
+    data = text.encode('utf-8')
+    ast.parse(text, filename=target)
+    pending[target] = data
+    info = manifest['gitee:liu-long068/QL_TimingScript']['files'][target]
+    info['upstream_sha256'] = info['sha256']
+    info['sha256'] = hashlib.sha256(data).hexdigest()
+    info['adaptation'] = 'Bark isArchive=1, group=移动云盘, request timeout=20s'
+
 def get(url):
     with urlopen(Request(url, headers={'User-Agent': 'QingLong-MyScripts-sync'}), timeout=60) as response:
         return response.read()
@@ -69,6 +92,7 @@ def main():
             pending[target] = data
             manifest[repo]['files'][target] = {'source': source, 'sha256': hashlib.sha256(data).hexdigest()}
     collect_gitee(pending, manifest)
+    adapt_bark_history(pending, manifest)
     pending['upstream/manifest.json'] = (json.dumps(manifest, ensure_ascii=False, indent=2) + '\n').encode()
     pending['requirements.txt'] = b'requests\nhttpx\npython-dotenv\n'
     pending['.gitignore'] = b'__pycache__/\n*.pyc\n.env\nwb_*.json\nWORKBUDDY_ACCESS_TOKEN.txt\nworkbuddy_*state*.json\nworkbuddy_sign_retry.json\n'
