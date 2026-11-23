@@ -1,6 +1,6 @@
 # QingLong-MyScripts
 
-统一管理夸克网盘和 WorkBuddy 国内版。青龙只订阅本仓库；每 6 小时自动检查两个上游。个人免费使用，非官方项目，保留原作者、MIT 许可证和转载声明。
+统一管理夸克网盘、WorkBuddy 国内版和中国移动云盘。青龙只订阅本仓库；每 6 小时自动检查三个上游。个人免费使用，非官方项目，保留原作者、MIT 许可证和转载声明。
 
 ## 仓库结构
 
@@ -10,6 +10,7 @@
     │   └── workbuddy_login.py
     ├── Quark/
     │   └── quark.py
+    ├── ChinaMobile/              中国移动云盘及三个同目录辅助模块
     ├── README.md
     ├── requirements.txt
     ├── licenses/                 原作者许可证
@@ -32,19 +33,19 @@
 | 黑名单、执行前、执行后 | 留空 |
 | 自动添加任务、自动删除任务 | 关闭 |
 
-白名单（匹配子目录中的两个运行脚本）：
+白名单（匹配子目录中的三个运行脚本）：
 
-    (^|/)(quark|workbuddy_daily)\.py$
+    (^|/)(quark|workbuddy_daily|中国移动云盘)\.py$
 
-依赖文件（同步登录工具，但不为它创建签到任务）：
+依赖文件（登录工具和移动云盘辅助模块，不为它们创建定时任务）：
 
-    workbuddy_login\.py$
+    (^|/)(workbuddy_login|log|get_env|sendNotify)\.py$
 
-保存后运行订阅。只需订阅这一个仓库，不用再添加两个上游。
+保存后运行订阅。只需订阅这一个仓库，不用再单独添加上游。
 
 ## 第二步：安装依赖
 
-依赖管理 → Python3 → 新建，安装 requests，等待成功。
+依赖管理 → Python3 → 新建，安装 requests、httpx、python-dotenv，等待成功。
 
 ## 第三步：填写账号环境变量
 
@@ -78,3 +79,16 @@ Actions → Sync selected upstream scripts → Run workflow 可手动更新。Gi
 - [L0NE-6/WorkBuddy-Daily](https://github.com/L0NE-6/WorkBuddy-Daily)：国内版 workbuddy_daily.py、workbuddy_login.py，另保留 MIT 许可证与 NOTICE，不同步国际版及上游签到工作流。
 
 upstream/manifest.json 记录来源提交与文件 SHA256。请遵守平台规则和 upstream/WorkBuddy-NOTICE.md，不用于收费包装、引流或冒充作者。
+
+
+## 中国移动云盘
+
+已同步到 ChinaMobile/，包含中国移动云盘.py、log.py、get_env.py、sendNotify.py，必须同目录。来源：[LeonByte/QL_TimingScript](https://gitee.com/liu-long068/QL_TimingScript)。原仓库未指定许可证，完整使用声明保留在 upstream/QL_TimingScript-README.md，不对这些文件另行授予 MIT 许可。
+
+配置 ydyp_ck、ydyp_ua 和建议的 ydyp_device_token 后，先带 --check 参数自检，再正常运行。移动脚本还包括任务、上传及活动巡检等上游流程；通知使用配套 sendNotify.py 的渠道配置。
+
+完整步骤见 [ChinaMobile/README.md](ChinaMobile/README.md)。示例任务：
+
+    task caozzzzz_QingLong-MyScripts_main/ChinaMobile/中国移动云盘.py
+
+示例定时：0 8,10,12,15 * * *。不要给 log.py、get_env.py、sendNotify.py 创建定时任务。

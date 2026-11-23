@@ -36,5 +36,32 @@
         "sha256": "37a731a3db7f0f865fb0b181d144769df97b66b4d2a64bb534fc335f3db9ad46"
       }
     }
+  },
+  "gitee:liu-long068/QL_TimingScript": {
+    "url": "https://gitee.com/liu-long068/QL_TimingScript.git",
+    "branch": "master",
+    "commit": "a422eeaabe479824a0f29ef48a30ca322e48e0b2",
+    "files": {
+      "ChinaMobile/中国移动云盘.py": {
+        "source": "中国移动云盘.py",
+        "sha256": "774cebfcfe1e50488cb3a450e37e4928b2df6d633fbe793ea8c11b0193aff89e"
+      },
+      "ChinaMobile/log.py": {
+        "source": "log.py",
+        "sha256": "8cc34299fd4c9a1d69255620017e7671851716e8d0f35ccb6504ad76fda81b49"
+      },
+      "ChinaMobile/get_env.py": {
+        "source": "get_env.py",
+        "sha256": "2a9340cc4e95f7fc797b7bf8fdf761b8c551ea8f5999f88fc2dcd887798f560b"
+      },
+      "ChinaMobile/sendNotify.py": {
+        "source": "sendNotify.py",
+        "sha256": "3389f9bdb924899ff05c5bec1a7c40ccf933da7a36e665b855774b517f9694ad"
+      },
+      "upstream/QL_TimingScript-README.md": {
+        "source": "README.md",
+        "sha256": "59b8fe6577f116b7fd4f5c70888c4a2e54d202e2aa5b12ac0c8bacc946207cfe"
+      }
+    }
   }
 }
