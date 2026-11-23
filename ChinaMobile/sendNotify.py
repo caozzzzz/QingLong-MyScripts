@@ -130,7 +130,7 @@ def bark(title, content):
     if BARK:
         try:
             response = requests.get(
-                f"""https://api.day.app/{BARK}/{title}/{urllib.parse.quote_plus(content)}""").json()
+                f"""https://api.day.app/{BARK}/{title}/{urllib.parse.quote_plus(content)}""", params={"isArchive": 1, "group": "移动云盘"}, timeout=20).json()
             if response['code'] == 200:
                 print('推送成功！')
             else:
@@ -140,7 +140,7 @@ def bark(title, content):
     if BARK_PUSH:
         try:
             response = requests.get(
-                f"""{BARK_PUSH}/{title}/{urllib.parse.quote_plus(content)}""").json()
+                f"""{BARK_PUSH}/{title}/{urllib.parse.quote_plus(content)}""", params={"isArchive": 1, "group": "移动云盘"}, timeout=20).json()
             if response['code'] == 200:
                 print('推送成功！')
             else:

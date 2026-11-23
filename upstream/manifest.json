@@ -56,7 +56,9 @@
       },
       "ChinaMobile/sendNotify.py": {
         "source": "sendNotify.py",
-        "sha256": "3389f9bdb924899ff05c5bec1a7c40ccf933da7a36e665b855774b517f9694ad"
+        "sha256": "bbece633528b956ffb2c066d37211af2fd0aaf2fdaf2a4daa51a57770c47409d",
+        "upstream_sha256": "3389f9bdb924899ff05c5bec1a7c40ccf933da7a36e665b855774b517f9694ad",
+        "adaptation": "Bark isArchive=1, group=移动云盘, request timeout=20s"
       },
       "upstream/QL_TimingScript-README.md": {
         "source": "README.md",
