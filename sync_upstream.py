@@ -27,7 +27,6 @@ GITEE_FILES = {
     '中国移动云盘.py': 'ChinaMobile/中国移动云盘.py',
     'log.py': 'ChinaMobile/log.py',
     'get_env.py': 'ChinaMobile/get_env.py',
-    'sendNotify.py': 'ChinaMobile/sendNotify.py',
     'README.md': 'upstream/QL_TimingScript-README.md',
 }
 
@@ -52,33 +51,34 @@ def collect_gitee(pending, manifest, checkout=None):
             collect(temp)
 
 
-def adapt_bark_history(pending, manifest):
-    target = 'ChinaMobile/sendNotify.py'
-    raw = pending[target]
-    text = raw.decode('utf-8')
-    start = text.index('def bark(title, content):')
-    end = text.index('def serverJ(', start)
-    adapter = (ROOT / 'patches/bark_function.py').read_text(encoding='utf-8')
-    text = text[:start] + adapter + text[end:]
-    data = text.encode('utf-8')
-    ast.parse(text, filename=target)
-    pending[target] = data
-    info = manifest['gitee:liu-long068/QL_TimingScript']['files'][target]
-    info['upstream_sha256'] = info['sha256']
-    info['sha256'] = hashlib.sha256(data).hexdigest()
-    info['adaptation'] = 'Bark POST form, single full notification first; chunk only on explicit oversize rejection; isArchive=1, group=移动云盘, safe error diagnostics'
+LOADER = r"""
+_common_notify_cache = None
 
+def _load_common_notify():
+    global _common_notify_cache
+    if _common_notify_cache is None:
+        import importlib.util
+        from pathlib import Path
+        path = Path(__file__).resolve().parents[1] / 'common' / 'notify.py'
+        if not path.is_file():
+            raise RuntimeError('缺少 common/notify.py，请更新订阅依赖文件并重新拉取')
+        spec = importlib.util.spec_from_file_location('_qinglong_shared_notify', path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        _common_notify_cache = module
+    return _common_notify_cache
 
-def adapt_workbuddy_history(pending, manifest):
-    """Embed one Bark implementation without requiring extra QingLong modules."""
-    helper = (ROOT / 'patches/unified_bark.py').read_text(encoding='utf-8')
-    def replace_function(text, name, replacement):
-        nodes = [n for n in ast.parse(text).body if isinstance(n, ast.FunctionDef) and n.name == name]
-        if len(nodes) != 1:
-            raise ValueError(f'Upstream notification function changed: {name}')
-        node = nodes[0]
-        lines = text.splitlines(keepends=True)
-        return ''.join(lines[:node.lineno - 1]) + replacement + '\n' + ''.join(lines[node.end_lineno:])
+"""
+
+def replace_function(text, name, replacement):
+    nodes = [n for n in ast.parse(text).body if isinstance(n, ast.FunctionDef) and n.name == name]
+    if len(nodes) != 1:
+        raise ValueError(f'Upstream notification function changed: {name}')
+    node = nodes[0]
+    lines = text.splitlines(keepends=True)
+    return ''.join(lines[:node.lineno - 1]) + replacement + '\n' + ''.join(lines[node.end_lineno:])
+
+def adapt_notifications(pending, manifest):
     def save(repo, target, raw, text):
         ast.parse(text, filename=target)
         data = text.encode('utf-8')
@@ -86,17 +86,14 @@ def adapt_workbuddy_history(pending, manifest):
         info = manifest[repo]['files'][target]
         info['upstream_sha256'] = hashlib.sha256(raw).hexdigest()
         info['sha256'] = hashlib.sha256(data).hexdigest()
-        info['adaptation'] = 'Embedded unified Bark: full single message first, history enabled, group per service; no extra dependencies'
+        info['adaptation'] = 'Shared common/notify.py: single-first archived Bark, service groups'
     target = 'WorkBuddy/workbuddy_daily.py'
     raw = pending[target]
     text = replace_function(raw.decode('utf-8'), '_bark_notify',
-        helper + 'def _bark_notify(title, content):\n    return _unified_bark(title, content, "WorkBuddy")\n')
+        LOADER + 'def _bark_notify(title, content):\n    return _load_common_notify().send(title, content, "WorkBuddy")\n')
     text = text.replace('def _ql_notify(title, content):', 'def _ql_notify_legacy(title, content):', 1)
-    text += '\n\n' if not text.endswith('\n') else ''
-    # Insert before the program entry point so all functions exist at execution time.
     wrapper = ('\ndef _ql_notify(title, content):\n'
-               '    if _unified_bark_endpoint():\n'
-               '        return False  # Direct Bark handles this report; prevent duplicate panel pushes.\n'
+               '    if _load_common_notify().configured():\n        return False\n'
                '    return _ql_notify_legacy(title, content)\n\n')
     marker = 'if __name__ == "__main__":'
     if marker not in text:
@@ -108,18 +105,33 @@ def adapt_workbuddy_history(pending, manifest):
     target = 'Quark/quark.py'
     raw = pending[target]
     original = raw.decode('utf-8')
-    # Keep the original QingLong channel as fallback when no direct Bark is configured.
     text = original.replace('def system_notify(title: str, content: str, daily_child: bool) -> str:',
                             'def _system_notify_legacy(title: str, content: str, daily_child: bool) -> str:', 1)
     if text == original:
         raise ValueError('Quark notification signature changed')
-    wrapper = (helper + 'def system_notify(title: str, content: str, daily_child: bool) -> str:\n'
+    wrapper = (LOADER + 'def system_notify(title: str, content: str, daily_child: bool) -> str:\n'
                '    if daily_child:\n        return "由合集统一发送"\n'
-               '    if _unified_bark_endpoint():\n'
-               '        return "Bark 已发送并请求保存历史" if _unified_bark(title, content, "夸克网盘") else "Bark 发送失败"\n'
+               '    notify = _load_common_notify()\n'
+               '    if notify.configured():\n'
+               '        return "Bark 已发送并请求保存历史" if notify.send(title, content, "夸克网盘") else "Bark 发送失败"\n'
                '    return _system_notify_legacy(title, content, daily_child)\n\n')
     text = text.replace('def _system_notify_legacy(', wrapper + 'def _system_notify_legacy(', 1)
     save('GGBondHere/QingLongScripts', target, raw, text)
+    target = 'ChinaMobile/中国移动云盘.py'
+    raw = pending[target]
+    text = raw.decode('utf-8')
+    old = 'from sendNotify import send_notification_message_collection'
+    if text.count(old) != 1:
+        raise ValueError('China Mobile notification import changed')
+    wrapper = (LOADER + 'def send_notification_message_collection(title):\n'
+               '    notify = _load_common_notify()\n'
+               '    content = "".join(log.all_print_list)\n'
+               '    if notify.configured():\n        return notify.send(title, content, "移动云盘")\n'
+               '    try:\n        QLAPI.systemNotify({"title": title, "content": content})\n        return True\n'
+               '    except NameError:\n        print("未配置 Bark，当前环境没有 QLAPI，跳过通知")\n        return False\n')
+    text = text.replace(old, wrapper)
+    text = text.replace('同目录需 log.py / get_env.py / sendNotify.py', '同目录需 log.py / get_env.py，另需 ../common/notify.py')
+    save('gitee:liu-long068/QL_TimingScript', target, raw, text)
 
 def get(url):
     with urlopen(Request(url, headers={'User-Agent': 'QingLong-MyScripts-sync'}), timeout=60) as response:
@@ -138,9 +150,8 @@ def main():
                 ast.parse(data.decode('utf-8-sig'), filename=target)
             pending[target] = data
             manifest[repo]['files'][target] = {'source': source, 'sha256': hashlib.sha256(data).hexdigest()}
-    adapt_workbuddy_history(pending, manifest)
     collect_gitee(pending, manifest)
-    adapt_bark_history(pending, manifest)
+    adapt_notifications(pending, manifest)
     pending['upstream/manifest.json'] = (json.dumps(manifest, ensure_ascii=False, indent=2) + '\n').encode()
     pending['requirements.txt'] = b'requests\nhttpx\npython-dotenv\n'
     pending['.gitignore'] = b'__pycache__/\n*.pyc\n.env\nwb_*.json\nWORKBUDDY_ACCESS_TOKEN.txt\nworkbuddy_*state*.json\nworkbuddy_sign_retry.json\n'
@@ -151,6 +162,7 @@ def main():
     for old, new in [('quark.py', 'Quark/quark.py'), ('workbuddy_daily.py', 'WorkBuddy/workbuddy_daily.py'), ('workbuddy_login.py', 'WorkBuddy/workbuddy_login.py')]:
         if (ROOT / new).is_file():
             (ROOT / old).unlink(missing_ok=True)
+    (ROOT / 'ChinaMobile/sendNotify.py').unlink(missing_ok=True)
     print('Synced Quark, WorkBuddy domestic and China Mobile Cloud. Upstream commits recorded.')
 
 if __name__ == '__main__':

@@ -1,105 +1,68 @@
 # QingLong-MyScripts
 
-统一管理夸克网盘、WorkBuddy 国内版和中国移动云盘。青龙只订阅本仓库；每 6 小时自动检查三个上游。个人免费使用，非官方项目，保留原作者、MIT 许可证和转载声明。
+一个青龙订阅管理夸克、WorkBuddy 国内版和中国移动云盘，三者共用 common/notify.py，每 6 小时检查上游。
 
-## 仓库结构
+## 目录
 
-    QingLong-MyScripts/
-    ├── WorkBuddy/
-    │   ├── workbuddy_daily.py
-    │   └── workbuddy_login.py
-    ├── Quark/
-    │   └── quark.py
-    ├── ChinaMobile/              中国移动云盘及三个同目录辅助模块
-    ├── README.md
-    ├── requirements.txt
-    ├── licenses/                 原作者许可证
-    ├── upstream/                 原作者说明、声明及来源校验记录
-    ├── sync_upstream.py          源码同步工具，不加入青龙定时任务
-    └── .github/workflows/sync.yml
+    common/notify.py                 唯一公共 Bark 发送模块
+    Quark/quark.py
+    WorkBuddy/workbuddy_daily.py
+    WorkBuddy/workbuddy_login.py      交互登录工具
+    ChinaMobile/中国移动云盘.py
+    ChinaMobile/log.py                日志收集
+    ChinaMobile/get_env.py            环境变量读取
+    licenses/                        原作者许可证
+    upstream/                        声明、说明、来源校验
 
-## 第一步：添加一个青龙订阅
+## 青龙订阅及升级
 
-订阅管理 → 新建：
+公开仓库链接：https://github.com/caozzzzz/QingLong-MyScripts.git
 
-| 字段 | 内容 |
-| --- | --- |
-| 名称 | QingLong-MyScripts |
-| 类型 | 公开仓库 |
-| 链接 | https://github.com/caozzzzz/QingLong-MyScripts.git |
-| 分支 | main |
-| 定时规则 | 45 */6 * * * |
-| 文件后缀 | py |
-| 黑名单、执行前、执行后 | 留空 |
-| 自动添加任务、自动删除任务 | 关闭 |
+分支 main，订阅定时 45 */6 * * *，文件后缀 py，黑名单、执行前、执行后留空，自动添加任务和自动删除任务关闭。
 
-白名单（匹配子目录中的三个运行脚本）：
+白名单：
 
-    (^|/)(quark|workbuddy_daily|中国移动云盘)\.py$
+    Quark/|WorkBuddy/workbuddy_daily|ChinaMobile/
 
-依赖文件（登录工具和移动云盘辅助模块，不为它们创建定时任务）：
+依赖文件（必须更新，保证拉取公共模块）：
 
-    (^|/)(workbuddy_login|log|get_env|sendNotify)\.py$
+    (^|/)(common/notify|workbuddy_login|log|get_env)\.py$
 
-保存后运行订阅。只需订阅这一个仓库，不用再单独添加上游。
+先保存依赖设置，再运行订阅。完成后在同一订阅目录下确认 common/notify.py 存在，再运行业务任务。不要在更新过程中运行任务。
 
-## 第二步：安装依赖
+原任务命令、账号变量、BARK、定时均不变，无需新建通知任务。Python3 依赖保持 requests、httpx、python-dotenv。公共模块按脚本文件路径加载，不依赖启动目录，不会误用根目录同名 notify.py。
 
-依赖管理 → Python3 → 新建，安装 requests、httpx、python-dotenv，等待成功。
+新版已移除 ChinaMobile/sendNotify.py，移动云盘不再导入它；青龙本地如有旧文件残留也不会调用。青龙自动提供或其他订阅依赖的 notify.py、sendNotify.js 保留，不要批量删除。
 
-## 第三步：填写账号环境变量
+## 公共 Bark 通知
 
-- QUARK_COOKIE：kps=实际值; sign=实际值; vcode=实际值#备注。需要夸克移动端参数，多账号每行一个。获取步骤见[夸克原作者说明](https://github.com/GGBondHere/QingLongScripts/blob/main/docs/quark.md)。
-- WORKBUDDY_REFRESH_TOKEN：手机号:AT:RT，多账号每行一个。没有令牌时，可下载 WorkBuddy/workbuddy_login.py 到本地交互登录，详见[WorkBuddy 原作者说明](https://github.com/L0NE-6/WorkBuddy-Daily#readme)。
-- 推荐 WORKBUDDY_STATE_DIR：设置独立持久化目录，例如 /ql/data/workbuddy-state，先确保目录已创建且可写，保留轮换令牌。已运行过旧路径脚本时，先迁移其令牌状态文件或重新登录，再切换新路径。
+三个脚本统一调用 common/notify.py。配置优先级：BARK（官方设备 Key）→ BARK_URL → BARK_PUSH（完整服务器/设备 Key 地址），已有 BARK 可直接复用。凭证只填青龙，不提交公开仓库。
 
-凭证仅填写青龙，不提交本公开仓库。本仓库 Actions 只同步源码，不运行签到，也不需要账号 Secrets。
+正文要求保存到 Bark 历史，分别使用“夸克网盘”“WorkBuddy”“移动云盘”分组。优先完整发一条，仅服务器明确返回消息过大时分段；超时等结果不确定的失败不自动重发。旧消息不补存。
 
-## 第四步：创建并试运行定时任务
+配置直接 Bark 后，WorkBuddy 和夸克不重复走青龙面板通知；未配置时保留其原面板渠道，移动云盘也尝试运行环境提供的 QLAPI。移动云盘旧 sendNotify.py 的其他通知渠道变量不再读取；WorkBuddy 独立配置的其他非 Bark 渠道仍保留。
 
-从青龙脚本列表选择实际路径；下表目录名为示例，以面板实际拉取目录为准，保留 WorkBuddy/ 和 Quark/ 层级。时区使用 Asia/Shanghai。
+## 任务与账号
 
-| 任务 | 命令示例 | 北京时间定时 |
+面板时区 Asia/Shanghai，命令中订阅目录以脚本管理实际路径为准。
+
+| 服务 | 命令示例 | 北京时间定时 |
 | --- | --- | --- |
-| 夸克签到 | task caozzzzz_QingLong-MyScripts_main/Quark/quark.py | 15 8 * * * |
-| WorkBuddy 日常 | task caozzzzz_QingLong-MyScripts_main/WorkBuddy/workbuddy_daily.py | 17 7,12 * * * |
+| 夸克 | task caozzzzz_QingLong-MyScripts_main/Quark/quark.py | 15 8 * * * |
+| WorkBuddy | task caozzzzz_QingLong-MyScripts_main/WorkBuddy/workbuddy_daily.py | 17 7,12 * * * |
 | WorkBuddy 夜间 | 同上 | 37 23 * * * |
+| 移动云盘 | task caozzzzz_QingLong-MyScripts_main/ChinaMobile/中国移动云盘.py | 0 8,10,12,15 * * * |
 
-先分别手动运行夸克和 WorkBuddy 日常任务，核对日志，再保留定时执行。workbuddy_login.py 为交互登录工具，不创建定时任务。
+- QUARK_COOKIE：kps=实际值; sign=实际值; vcode=实际值，多账号换行。
+- WORKBUDDY_REFRESH_TOKEN：手机号:AT:RT，多账号换行。建议 WORKBUDDY_STATE_DIR 指向独立持久化可写目录保存轮换令牌。
+- 移动云盘：详见 [ChinaMobile/README.md](ChinaMobile/README.md)，首次可在命令末尾加 --check 自检。
 
-若之前已添加旧版根目录任务，切换前停用旧任务，避免重复运行。青龙内实际目录以订阅日志、脚本管理为准。
+## 来源和维护
 
-夸克与 WorkBuddy 已适配统一 Bark 通知：优先复用 BARK 设备 Key，其次使用 BARK_URL 或 BARK_PUSH 完整地址。未配置直接 Bark 时保留原青龙通知渠道。
+- [GGBondHere/QingLongScripts](https://github.com/GGBondHere/QingLongScripts)：只收录夸克，保留 MIT 许可证。
+- [L0NE-6/WorkBuddy-Daily](https://github.com/L0NE-6/WorkBuddy-Daily)：国内版与登录工具，保留 MIT 许可证及 NOTICE。
+- [LeonByte/QL_TimingScript](https://gitee.com/liu-long068/QL_TimingScript)：移动云盘、log.py、get_env.py，未指定许可证，完整声明保留在 upstream/QL_TimingScript-README.md，不为这些文件另行授予 MIT 许可。
 
-## 自动同步与来源
+仅适配通知接入，其余业务沿用上游；移动云盘包括任务、上传与活动巡检，不仅签到。upstream/manifest.json 记录来源提交、原始及适配后 SHA256。
 
-Actions → Sync selected upstream scripts → Run workflow 可手动更新。GitHub 定时可能延迟，公开仓库长期无活动时可能停用定时，需要手动重新启用。
-
-- [GGBondHere/QingLongScripts](https://github.com/GGBondHere/QingLongScripts)：仅 scripts/quark.py，另保留夸克说明与 MIT 许可证，不同步其他平台。
-- [L0NE-6/WorkBuddy-Daily](https://github.com/L0NE-6/WorkBuddy-Daily)：国内版 workbuddy_daily.py、workbuddy_login.py，另保留 MIT 许可证与 NOTICE，不同步国际版及上游签到工作流。
-
-upstream/manifest.json 记录来源提交与文件 SHA256。请遵守平台规则和 upstream/WorkBuddy-NOTICE.md，不用于收费包装、引流或冒充作者。
-
-
-## 中国移动云盘
-
-已同步到 ChinaMobile/，包含中国移动云盘.py、log.py、get_env.py、sendNotify.py，必须同目录。来源：[LeonByte/QL_TimingScript](https://gitee.com/liu-long068/QL_TimingScript)。原仓库未指定许可证，完整使用声明保留在 upstream/QL_TimingScript-README.md，不对这些文件另行授予 MIT 许可。
-
-配置 ydyp_ck、ydyp_ua 和建议的 ydyp_device_token 后，先带 --check 参数自检，再正常运行。移动脚本还包括任务、上传及活动巡检等上游流程；通知使用配套 sendNotify.py 的渠道配置。
-
-完整步骤见 [ChinaMobile/README.md](ChinaMobile/README.md)。示例任务：
-
-    task caozzzzz_QingLong-MyScripts_main/ChinaMobile/中国移动云盘.py
-
-示例定时：0 8,10,12,15 * * *。不要给 log.py、get_env.py、sendNotify.py 创建定时任务。
-
-
-## 统一 Bark 通知（夸克 / WorkBuddy / 移动云盘）
-
-已有官方 Bark 的 BARK 设备 Key 即可复用。夸克和 WorkBuddy 的选择顺序为 BARK → BARK_URL → BARK_PUSH，建议使用现有 BARK 并禁用不需要的旧地址变量。移动云盘保持其 BARK / BARK_PUSH 配置。
-
-三者发送时均要求保存历史消息，并分别归入“夸克网盘”“WorkBuddy”“移动云盘”。优先完整发送单条，仅在服务器明确返回消息过大时才分段。超时不会自动补发，以免重复通知。
-
-WorkBuddy 已配置直接 Bark 时跳过青龙默认通知，避免双渠道重复发送同一报告；其他独立配置的非 Bark 渠道仍保留。夸克由直接 Bark 发送时也不再重复调用青龙通知。未配置直接 Bark 时，两者继续使用原有面板渠道。
-
-在青龙运行订阅拉取更新后生效，无需新建通知任务，无需新增依赖文件。适配代码自动嵌入两个主脚本，上游更新时会重新应用；原始与适配后 SHA256 均保存在 upstream/manifest.json。
+Actions 可手动运行同步；定时可能延迟，长期无活动可能需重新启用。每次同步重新应用公共通知接入，并运行无账号、无真实推送的模拟测试。请遵守平台及原作者声明，不用于收费包装或引流。
