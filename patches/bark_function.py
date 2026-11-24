@@ -14,6 +14,38 @@ def _bark_parts(content, budget=2000):
     return parts
 
 
+def _bark_send(endpoint, title, body, label):
+    payload = {'title': str(title)[:80], 'body': str(body),
+               'isArchive': '1', 'group': '移动云盘'}
+    try:
+        response = requests.post(endpoint, data=payload, timeout=(10, 30))
+        try:
+            result = response.json()
+        except ValueError:
+            result = {}
+        if not isinstance(result, dict):
+            result = {}
+        code = result.get('code')
+        if response.status_code == 200 and code == 200:
+            return 'ok'
+        # Only an explicit size rejection permits a second attempt as chunks.
+        reason = str(result.get('message', '')) + ' ' + str(result.get('msg', ''))
+        lower = reason.lower()
+        oversized = response.status_code == 413 or code == 413 or any(
+            marker in lower for marker in
+            ('payloadtoolarge', 'payload too large', 'request entity too large',
+             'message too large', '消息过大', '消息太大', '消息体过大'))
+        if oversized:
+            print(f'Bark {label} 明确返回消息过大，尝试分段')
+            return 'oversized'
+        safe_code = str(code) if isinstance(code, (int, float)) else '未知'
+        print(f'Bark {label} 推送失败：HTTP {response.status_code}，业务码 {safe_code}；未重试')
+    except Exception as error:
+        # A timeout has an uncertain delivery outcome: do not resend automatically.
+        print(f'Bark {label} 推送失败：{type(error).__name__}（地址及密钥已隐藏）；未重试')
+    return 'failed'
+
+
 def bark(title, content):
     endpoints = []
     if BARK:
@@ -23,31 +55,22 @@ def bark(title, content):
     if not endpoints:
         print('Bark 未配置，跳过推送')
         return
-    parts = _bark_parts(content)
     for label, endpoint in endpoints:
+        outcome = _bark_send(endpoint, title, content, label)
+        if outcome == 'ok':
+            print(f'Bark {label} 推送成功：完整 1 条，已请求保存历史记录')
+            continue
+        if outcome != 'oversized':
+            continue
+        parts = _bark_parts(content)
+        if len(parts) == 1:
+            print(f'Bark {label} 消息已很短，停止分段重试')
+            continue
         succeeded = 0
         for index, body in enumerate(parts, 1):
-            suffix = f' ({index}/{len(parts)})' if len(parts) > 1 else ''
-            payload = {
-                'title': str(title)[:80] + suffix, 'body': body,
-                'isArchive': '1', 'group': '移动云盘',
-            }
-            try:
-                response = requests.post(endpoint, data=payload, timeout=(10, 30))
-                try:
-                    result = response.json()
-                except ValueError:
-                    print(f'Bark {label} 第{index}条失败：HTTP {response.status_code}，响应非 JSON')
-                    continue
-                if response.status_code == 200 and result.get('code') == 200:
-                    succeeded += 1
-                    continue
-                # Do not log request URLs, keys, raw responses, or exception text.
-                code = result.get('code')
-                safe_code = str(code) if isinstance(code, (int, float)) else '未知'
-                print(f'Bark {label} 第{index}条失败：HTTP {response.status_code}，业务码 {safe_code}')
-            except Exception as error:
-                print(f'Bark {label} 第{index}条失败：{type(error).__name__}（地址及密钥已隐藏）')
-        print(f'Bark {label} 推送完成：{succeeded}/{len(parts)} 条成功，已请求保存历史记录')
+            chunk_title = str(title)[:60] + f' ({index}/{len(parts)})'
+            if _bark_send(endpoint, chunk_title, body, label) == 'ok':
+                succeeded += 1
+        print(f'Bark {label} 分段推送完成：{succeeded}/{len(parts)} 条成功')
 
 
