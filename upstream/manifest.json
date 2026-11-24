@@ -56,9 +56,9 @@
       },
       "ChinaMobile/sendNotify.py": {
         "source": "sendNotify.py",
-        "sha256": "28e5dfb18e9537faf9b329e5c7b069a4b21dcf859780fd6098b5355cf256bf1f",
+        "sha256": "e572361cedd6368e44c9422b0cacc24af998a74153aa87766d41050cb62dc5b1",
         "upstream_sha256": "3389f9bdb924899ff05c5bec1a7c40ccf933da7a36e665b855774b517f9694ad",
-        "adaptation": "Bark POST form, 2000-byte escaped UTF-8 chunks, isArchive=1, group=移动云盘, safe error diagnostics"
+        "adaptation": "Bark POST form, single full notification first; chunk only on explicit oversize rejection; isArchive=1, group=移动云盘, safe error diagnostics"
       },
       "upstream/QL_TimingScript-README.md": {
         "source": "README.md",
