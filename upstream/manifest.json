@@ -4,7 +4,9 @@
     "files": {
       "Quark/quark.py": {
         "source": "scripts/quark.py",
-        "sha256": "9493ec5042f30cb45a2d46da066192333f1487a62b26c8aa9ecdddba6122c022"
+        "sha256": "b91be6203eda5e444d3b4255e3a3e834d8241a4fae6863dfef8f43713baaf69b",
+        "upstream_sha256": "9493ec5042f30cb45a2d46da066192333f1487a62b26c8aa9ecdddba6122c022",
+        "adaptation": "Embedded unified Bark: full single message first, history enabled, group per service; no extra dependencies"
       },
       "upstream/quark.md": {
         "source": "docs/quark.md",
@@ -21,9 +23,9 @@
     "files": {
       "WorkBuddy/workbuddy_daily.py": {
         "source": "workbuddy_daily.py",
-        "sha256": "ee0d59a32e2d91e63ffb560cdffa0785f0c04e93919af5a6488faac58360164e",
+        "sha256": "e97cf7ba2cb5d164ec564f02758172d2c2369d2030e3f53e7efd535a8049a372",
         "upstream_sha256": "77c86d1f8794030e20b917d713fb50a008cf36b1366fd6a262dc32c1fbba4f2e",
-        "adaptation": "WorkBuddy direct Bark payload sets isArchive=1; preserves full single notification"
+        "adaptation": "Embedded unified Bark: full single message first, history enabled, group per service; no extra dependencies"
       },
       "WorkBuddy/workbuddy_login.py": {
         "source": "workbuddy_login.py",

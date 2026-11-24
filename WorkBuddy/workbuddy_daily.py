@@ -6885,24 +6885,87 @@ def _wecom_notify(title, content):
     return False
 
 
-def _bark_notify(title, content):
-    """Bark 推送（iOS）；未配置 BARK_URL 则跳过。直接 POST 到 BARK_URL（/:device_key 路由），
-    不加 /push 后缀——bark-server 会把 URL 路径第二段解析为 body 参数覆盖 JSON。"""
-    url = os.environ.get("BARK_URL", "").strip().rstrip("/")
-    if not url:
-        return False
+# Local Bark adaptation for China Mobile Cloud; inserted by sync_upstream.py.
+def _unified_bark_parts(content, budget=2000):
+    """Bound JSON-escaped UTF-8 bytes, leaving room for APNs metadata."""
+    parts, current, size = [], [], 0
+    for char in str(content):
+        cost = len(json.dumps(char, ensure_ascii=False)[1:-1].encode('utf-8'))
+        if current and size + cost > budget:
+            parts.append(''.join(current))
+            current, size = [], 0
+        current.append(char)
+        size += cost
+    if current or not parts:
+        parts.append(''.join(current))
+    return parts
+
+
+def _unified_bark_send(endpoint, title, body, label, group):
+    payload = {'title': str(title)[:80], 'body': str(body),
+               'isArchive': '1', 'group': group}
     try:
-        s = requests.Session(); s.trust_env = False
-        r = s.post(url, json={"title": title, "body": content, "group": "WorkBuddy", "isArchive": 1},
-                   timeout=20, verify=False)
-        d = r.json()
-        if d.get("code") == 200:
-            print("📢 Bark 推送成功")
-            return True
-        print("📢 Bark 推送失败: %s" % str(d.get("message", ""))[:80])
-    except Exception as e:
-        print("📢 Bark 异常: %s" % str(e)[:80])
-    return False
+        response = requests.post(endpoint, data=payload, timeout=(10, 30))
+        try:
+            result = response.json()
+        except ValueError:
+            result = {}
+        if not isinstance(result, dict):
+            result = {}
+        code = result.get('code')
+        if response.status_code == 200 and code == 200:
+            return 'ok'
+        # Only an explicit size rejection permits a second attempt as chunks.
+        reason = str(result.get('message', '')) + ' ' + str(result.get('msg', ''))
+        lower = reason.lower()
+        oversized = response.status_code == 413 or code == 413 or any(
+            marker in lower for marker in
+            ('payloadtoolarge', 'payload too large', 'request entity too large',
+             'message too large', '消息过大', '消息太大', '消息体过大'))
+        if oversized:
+            print(f'Bark {label} 明确返回消息过大，尝试分段')
+            return 'oversized'
+        safe_code = str(code) if isinstance(code, (int, float)) else '未知'
+        print(f'Bark {label} 推送失败：HTTP {response.status_code}，业务码 {safe_code}；未重试')
+    except Exception as error:
+        # A timeout has an uncertain delivery outcome: do not resend automatically.
+        print(f'Bark {label} 推送失败：{type(error).__name__}（地址及密钥已隐藏）；未重试')
+    return 'failed'
+
+
+def _unified_bark_endpoint():
+    key = os.environ.get('BARK', '').strip()
+    if key:
+        return 'https://api.day.app/' + key.strip('/')
+    return (os.environ.get('BARK_URL', '').strip() or
+            os.environ.get('BARK_PUSH', '').strip()).rstrip('/')
+
+
+def _unified_bark(title, content, group):
+    endpoint = _unified_bark_endpoint()
+    if not endpoint:
+        return False
+    outcome = _unified_bark_send(endpoint, title, content, group, group)
+    if outcome == 'ok':
+        print(f'Bark {group} 推送成功：完整 1 条，已请求保存历史记录')
+        return True
+    if outcome != 'oversized':
+        return False
+    parts = _unified_bark_parts(content)
+    if len(parts) == 1:
+        return False
+    succeeded = 0
+    for index, body in enumerate(parts, 1):
+        chunk_title = str(title)[:60] + f' ({index}/{len(parts)})'
+        if _unified_bark_send(endpoint, chunk_title, body, group, group) == 'ok':
+            succeeded += 1
+    print(f'Bark {group} 分段推送完成：{succeeded}/{len(parts)} 条成功')
+    return succeeded == len(parts)
+
+
+def _bark_notify(title, content):
+    return _unified_bark(title, content, "WorkBuddy")
+
 
 
 def _wxpusher_notify(title, content):
@@ -7050,7 +7113,7 @@ def _ql_open_token():
         return ""
 
 
-def _ql_notify(title, content):
+def _ql_notify_legacy(title, content):
     """青龙面板自带的默认通知渠道（面板里配好的那种）。
 
     两种鉴权都支持，自动选：
@@ -7261,6 +7324,12 @@ def _notify_or_skip(summaries):
 
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
+
+
+def _ql_notify(title, content):
+    if _unified_bark_endpoint():
+        return False  # Direct Bark handles this report; prevent duplicate panel pushes.
+    return _ql_notify_legacy(title, content)
 
 if __name__ == "__main__":
     main()
