@@ -4,9 +4,9 @@
     "files": {
       "Quark/quark.py": {
         "source": "scripts/quark.py",
-        "sha256": "b91be6203eda5e444d3b4255e3a3e834d8241a4fae6863dfef8f43713baaf69b",
+        "sha256": "a3f6bec81bb442c4bbbf01b63dfc57a7b6c1a6f64d8f5321eace0faa21dc097f",
         "upstream_sha256": "9493ec5042f30cb45a2d46da066192333f1487a62b26c8aa9ecdddba6122c022",
-        "adaptation": "Embedded unified Bark: full single message first, history enabled, group per service; no extra dependencies"
+        "adaptation": "Shared common/notify.py: single-first archived Bark, service groups"
       },
       "upstream/quark.md": {
         "source": "docs/quark.md",
@@ -23,9 +23,9 @@
     "files": {
       "WorkBuddy/workbuddy_daily.py": {
         "source": "workbuddy_daily.py",
-        "sha256": "e97cf7ba2cb5d164ec564f02758172d2c2369d2030e3f53e7efd535a8049a372",
+        "sha256": "ca97d83249d2abe08b0e6e311227f4379110eeae195a5db68285bc5dc8c3cbbf",
         "upstream_sha256": "77c86d1f8794030e20b917d713fb50a008cf36b1366fd6a262dc32c1fbba4f2e",
-        "adaptation": "Embedded unified Bark: full single message first, history enabled, group per service; no extra dependencies"
+        "adaptation": "Shared common/notify.py: single-first archived Bark, service groups"
       },
       "WorkBuddy/workbuddy_login.py": {
         "source": "workbuddy_login.py",
@@ -48,7 +48,9 @@
     "files": {
       "ChinaMobile/中国移动云盘.py": {
         "source": "中国移动云盘.py",
-        "sha256": "774cebfcfe1e50488cb3a450e37e4928b2df6d633fbe793ea8c11b0193aff89e"
+        "sha256": "b717504c4d7bf319e805d59df5be2cf2f9be342709bdd6c7ad08679f51d198ab",
+        "upstream_sha256": "774cebfcfe1e50488cb3a450e37e4928b2df6d633fbe793ea8c11b0193aff89e",
+        "adaptation": "Shared common/notify.py: single-first archived Bark, service groups"
       },
       "ChinaMobile/log.py": {
         "source": "log.py",
@@ -57,12 +59,6 @@
       "ChinaMobile/get_env.py": {
         "source": "get_env.py",
         "sha256": "2a9340cc4e95f7fc797b7bf8fdf761b8c551ea8f5999f88fc2dcd887798f560b"
-      },
-      "ChinaMobile/sendNotify.py": {
-        "source": "sendNotify.py",
-        "sha256": "e572361cedd6368e44c9422b0cacc24af998a74153aa87766d41050cb62dc5b1",
-        "upstream_sha256": "3389f9bdb924899ff05c5bec1a7c40ccf933da7a36e665b855774b517f9694ad",
-        "adaptation": "Bark POST form, single full notification first; chunk only on explicit oversize rejection; isArchive=1, group=移动云盘, safe error diagnostics"
       },
       "upstream/QL_TimingScript-README.md": {
         "source": "README.md",

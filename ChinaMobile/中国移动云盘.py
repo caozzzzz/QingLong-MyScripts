@@ -68,7 +68,7 @@
         exchangeV3 这几个接口会带上它，服务端据此确认「设备已登记」。不填一律回
         614「活动太火爆啦，锁定失败」——实测同账号同请求，仅补上这串即领取成功。
         抓法见上方 ydyp_device_token。
-  3) 依赖：httpx、python-dotenv；同目录需 log.py / get_env.py / sendNotify.py（本仓库自带，
+  3) 依赖：httpx、python-dotenv；同目录需 log.py / get_env.py，另需 ../common/notify.py（本仓库自带，
      一起下载即可）。pip 装依赖：pip install httpx python-dotenv
   4) 兑换接口带滑块验证（getSlidePuzzle + puzzleOffset），脚本无法完成。
   5) 「当月上传文件满100个」的补足功能**实测无效**：OSE 活动上传（能完成「手动上传一个文件」）
@@ -120,7 +120,35 @@ import httpx
 
 import log
 from get_env import get_env
-from sendNotify import send_notification_message_collection
+
+_common_notify_cache = None
+
+def _load_common_notify():
+    global _common_notify_cache
+    if _common_notify_cache is None:
+        import importlib.util
+        from pathlib import Path
+        path = Path(__file__).resolve().parents[1] / 'common' / 'notify.py'
+        if not path.is_file():
+            raise RuntimeError('缺少 common/notify.py，请更新订阅依赖文件并重新拉取')
+        spec = importlib.util.spec_from_file_location('_qinglong_shared_notify', path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        _common_notify_cache = module
+    return _common_notify_cache
+
+def send_notification_message_collection(title):
+    notify = _load_common_notify()
+    content = "".join(log.all_print_list)
+    if notify.configured():
+        return notify.send(title, content, "移动云盘")
+    try:
+        QLAPI.systemNotify({"title": title, "content": content})
+        return True
+    except NameError:
+        print("未配置 Bark，当前环境没有 QLAPI，跳过通知")
+        return False
+
 
 try:
     from dotenv import load_dotenv, find_dotenv
