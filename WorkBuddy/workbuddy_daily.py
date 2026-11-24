@@ -6893,7 +6893,7 @@ def _bark_notify(title, content):
         return False
     try:
         s = requests.Session(); s.trust_env = False
-        r = s.post(url, json={"title": title, "body": content, "group": "WorkBuddy"},
+        r = s.post(url, json={"title": title, "body": content, "group": "WorkBuddy", "isArchive": 1},
                    timeout=20, verify=False)
         d = r.json()
         if d.get("code") == 200:
