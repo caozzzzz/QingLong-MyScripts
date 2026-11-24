@@ -56,23 +56,17 @@ def adapt_bark_history(pending, manifest):
     target = 'ChinaMobile/sendNotify.py'
     raw = pending[target]
     text = raw.decode('utf-8')
-    replacements = [
-        ('f"""https://api.day.app/{BARK}/{title}/{urllib.parse.quote_plus(content)}""").json()',
-         'f"""https://api.day.app/{BARK}/{title}/{urllib.parse.quote_plus(content)}""", params={"isArchive": 1, "group": "移动云盘"}, timeout=20).json()'),
-        ('f"""{BARK_PUSH}/{title}/{urllib.parse.quote_plus(content)}""").json()',
-         'f"""{BARK_PUSH}/{title}/{urllib.parse.quote_plus(content)}""", params={"isArchive": 1, "group": "移动云盘"}, timeout=20).json()'),
-    ]
-    for old, new in replacements:
-        if text.count(old) != 1:
-            raise ValueError('Upstream Bark implementation changed; review archive adaptation')
-        text = text.replace(old, new)
+    start = text.index('def bark(title, content):')
+    end = text.index('def serverJ(', start)
+    adapter = (ROOT / 'patches/bark_function.py').read_text(encoding='utf-8')
+    text = text[:start] + adapter + text[end:]
     data = text.encode('utf-8')
     ast.parse(text, filename=target)
     pending[target] = data
     info = manifest['gitee:liu-long068/QL_TimingScript']['files'][target]
     info['upstream_sha256'] = info['sha256']
     info['sha256'] = hashlib.sha256(data).hexdigest()
-    info['adaptation'] = 'Bark isArchive=1, group=移动云盘, request timeout=20s'
+    info['adaptation'] = 'Bark POST form, 2000-byte escaped UTF-8 chunks, isArchive=1, group=移动云盘, safe error diagnostics'
 
 def get(url):
     with urlopen(Request(url, headers={'User-Agent': 'QingLong-MyScripts-sync'}), timeout=60) as response:
