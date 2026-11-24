@@ -17,11 +17,11 @@
     }
   },
   "L0NE-6/WorkBuddy-Daily": {
-    "commit": "ec7cc36525045322692621b537e77edc43115139",
+    "commit": "35ea8e35a4982c796f002102555d60be2bedac9a",
     "files": {
       "WorkBuddy/workbuddy_daily.py": {
         "source": "workbuddy_daily.py",
-        "sha256": "68f4ec586124538fb9ffd52c4f653f6e205639edc18b3c92fa4bc3c7003f8ce0"
+        "sha256": "77c86d1f8794030e20b917d713fb50a008cf36b1366fd6a262dc32c1fbba4f2e"
       },
       "WorkBuddy/workbuddy_login.py": {
         "source": "workbuddy_login.py",
@@ -56,9 +56,9 @@
       },
       "ChinaMobile/sendNotify.py": {
         "source": "sendNotify.py",
-        "sha256": "bbece633528b956ffb2c066d37211af2fd0aaf2fdaf2a4daa51a57770c47409d",
+        "sha256": "28e5dfb18e9537faf9b329e5c7b069a4b21dcf859780fd6098b5355cf256bf1f",
         "upstream_sha256": "3389f9bdb924899ff05c5bec1a7c40ccf933da7a36e665b855774b517f9694ad",
-        "adaptation": "Bark isArchive=1, group=移动云盘, request timeout=20s"
+        "adaptation": "Bark POST form, 2000-byte escaped UTF-8 chunks, isArchive=1, group=移动云盘, safe error diagnostics"
       },
       "upstream/QL_TimingScript-README.md": {
         "source": "README.md",
