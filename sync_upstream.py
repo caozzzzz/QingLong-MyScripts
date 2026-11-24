@@ -70,21 +70,56 @@ def adapt_bark_history(pending, manifest):
 
 
 def adapt_workbuddy_history(pending, manifest):
+    """Embed one Bark implementation without requiring extra QingLong modules."""
+    helper = (ROOT / 'patches/unified_bark.py').read_text(encoding='utf-8')
+    def replace_function(text, name, replacement):
+        nodes = [n for n in ast.parse(text).body if isinstance(n, ast.FunctionDef) and n.name == name]
+        if len(nodes) != 1:
+            raise ValueError(f'Upstream notification function changed: {name}')
+        node = nodes[0]
+        lines = text.splitlines(keepends=True)
+        return ''.join(lines[:node.lineno - 1]) + replacement + '\n' + ''.join(lines[node.end_lineno:])
+    def save(repo, target, raw, text):
+        ast.parse(text, filename=target)
+        data = text.encode('utf-8')
+        pending[target] = data
+        info = manifest[repo]['files'][target]
+        info['upstream_sha256'] = hashlib.sha256(raw).hexdigest()
+        info['sha256'] = hashlib.sha256(data).hexdigest()
+        info['adaptation'] = 'Embedded unified Bark: full single message first, history enabled, group per service; no extra dependencies'
     target = 'WorkBuddy/workbuddy_daily.py'
     raw = pending[target]
-    text = raw.decode('utf-8')
-    old = 'json={"title": title, "body": content, "group": "WorkBuddy"}'
-    new = 'json={"title": title, "body": content, "group": "WorkBuddy", "isArchive": 1}'
-    if text.count(old) != 1:
-        raise ValueError('WorkBuddy Bark payload changed; review history adaptation')
-    text = text.replace(old, new)
-    data = text.encode('utf-8')
-    ast.parse(text, filename=target)
-    pending[target] = data
-    info = manifest['L0NE-6/WorkBuddy-Daily']['files'][target]
-    info['upstream_sha256'] = info['sha256']
-    info['sha256'] = hashlib.sha256(data).hexdigest()
-    info['adaptation'] = 'WorkBuddy direct Bark payload sets isArchive=1; preserves full single notification'
+    text = replace_function(raw.decode('utf-8'), '_bark_notify',
+        helper + 'def _bark_notify(title, content):\n    return _unified_bark(title, content, "WorkBuddy")\n')
+    text = text.replace('def _ql_notify(title, content):', 'def _ql_notify_legacy(title, content):', 1)
+    text += '\n\n' if not text.endswith('\n') else ''
+    # Insert before the program entry point so all functions exist at execution time.
+    wrapper = ('\ndef _ql_notify(title, content):\n'
+               '    if _unified_bark_endpoint():\n'
+               '        return False  # Direct Bark handles this report; prevent duplicate panel pushes.\n'
+               '    return _ql_notify_legacy(title, content)\n\n')
+    marker = 'if __name__ == "__main__":'
+    if marker not in text:
+        marker = "if __name__ == '__main__':"
+    if marker not in text:
+        raise ValueError('WorkBuddy entry point changed')
+    text = text.replace(marker, wrapper + marker, 1)
+    save('L0NE-6/WorkBuddy-Daily', target, raw, text)
+    target = 'Quark/quark.py'
+    raw = pending[target]
+    original = raw.decode('utf-8')
+    # Keep the original QingLong channel as fallback when no direct Bark is configured.
+    text = original.replace('def system_notify(title: str, content: str, daily_child: bool) -> str:',
+                            'def _system_notify_legacy(title: str, content: str, daily_child: bool) -> str:', 1)
+    if text == original:
+        raise ValueError('Quark notification signature changed')
+    wrapper = (helper + 'def system_notify(title: str, content: str, daily_child: bool) -> str:\n'
+               '    if daily_child:\n        return "由合集统一发送"\n'
+               '    if _unified_bark_endpoint():\n'
+               '        return "Bark 已发送并请求保存历史" if _unified_bark(title, content, "夸克网盘") else "Bark 发送失败"\n'
+               '    return _system_notify_legacy(title, content, daily_child)\n\n')
+    text = text.replace('def _system_notify_legacy(', wrapper + 'def _system_notify_legacy(', 1)
+    save('GGBondHere/QingLongScripts', target, raw, text)
 
 def get(url):
     with urlopen(Request(url, headers={'User-Agent': 'QingLong-MyScripts-sync'}), timeout=60) as response:
