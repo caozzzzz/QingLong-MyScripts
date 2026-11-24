@@ -69,7 +69,7 @@
 
 若之前已添加旧版根目录任务，切换前停用旧任务，避免重复运行。青龙内实际目录以订阅日志、脚本管理为准。
 
-夸克使用青龙面板通知；WorkBuddy 新版青龙默认通知可能需要 QL_CLIENT_ID、QL_CLIENT_SECRET 与 system 权限，详见上游说明。
+夸克与 WorkBuddy 已适配统一 Bark 通知：优先复用 BARK 设备 Key，其次使用 BARK_URL 或 BARK_PUSH 完整地址。未配置直接 Bark 时保留原青龙通知渠道。
 
 ## 自动同步与来源
 
@@ -92,3 +92,14 @@ upstream/manifest.json 记录来源提交与文件 SHA256。请遵守平台规�
     task caozzzzz_QingLong-MyScripts_main/ChinaMobile/中国移动云盘.py
 
 示例定时：0 8,10,12,15 * * *。不要给 log.py、get_env.py、sendNotify.py 创建定时任务。
+
+
+## 统一 Bark 通知（夸克 / WorkBuddy / 移动云盘）
+
+已有官方 Bark 的 BARK 设备 Key 即可复用。夸克和 WorkBuddy 的选择顺序为 BARK → BARK_URL → BARK_PUSH，建议使用现有 BARK 并禁用不需要的旧地址变量。移动云盘保持其 BARK / BARK_PUSH 配置。
+
+三者发送时均要求保存历史消息，并分别归入“夸克网盘”“WorkBuddy”“移动云盘”。优先完整发送单条，仅在服务器明确返回消息过大时才分段。超时不会自动补发，以免重复通知。
+
+WorkBuddy 已配置直接 Bark 时跳过青龙默认通知，避免双渠道重复发送同一报告；其他独立配置的非 Bark 渠道仍保留。夸克由直接 Bark 发送时也不再重复调用青龙通知。未配置直接 Bark 时，两者继续使用原有面板渠道。
+
+在青龙运行订阅拉取更新后生效，无需新建通知任务，无需新增依赖文件。适配代码自动嵌入两个主脚本，上游更新时会重新应用；原始与适配后 SHA256 均保存在 upstream/manifest.json。
