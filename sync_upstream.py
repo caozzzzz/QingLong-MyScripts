@@ -68,6 +68,24 @@ def adapt_bark_history(pending, manifest):
     info['sha256'] = hashlib.sha256(data).hexdigest()
     info['adaptation'] = 'Bark POST form, single full notification first; chunk only on explicit oversize rejection; isArchive=1, group=移动云盘, safe error diagnostics'
 
+
+def adapt_workbuddy_history(pending, manifest):
+    target = 'WorkBuddy/workbuddy_daily.py'
+    raw = pending[target]
+    text = raw.decode('utf-8')
+    old = 'json={"title": title, "body": content, "group": "WorkBuddy"}'
+    new = 'json={"title": title, "body": content, "group": "WorkBuddy", "isArchive": 1}'
+    if text.count(old) != 1:
+        raise ValueError('WorkBuddy Bark payload changed; review history adaptation')
+    text = text.replace(old, new)
+    data = text.encode('utf-8')
+    ast.parse(text, filename=target)
+    pending[target] = data
+    info = manifest['L0NE-6/WorkBuddy-Daily']['files'][target]
+    info['upstream_sha256'] = info['sha256']
+    info['sha256'] = hashlib.sha256(data).hexdigest()
+    info['adaptation'] = 'WorkBuddy direct Bark payload sets isArchive=1; preserves full single notification'
+
 def get(url):
     with urlopen(Request(url, headers={'User-Agent': 'QingLong-MyScripts-sync'}), timeout=60) as response:
         return response.read()
@@ -85,6 +103,7 @@ def main():
                 ast.parse(data.decode('utf-8-sig'), filename=target)
             pending[target] = data
             manifest[repo]['files'][target] = {'source': source, 'sha256': hashlib.sha256(data).hexdigest()}
+    adapt_workbuddy_history(pending, manifest)
     collect_gitee(pending, manifest)
     adapt_bark_history(pending, manifest)
     pending['upstream/manifest.json'] = (json.dumps(manifest, ensure_ascii=False, indent=2) + '\n').encode()
